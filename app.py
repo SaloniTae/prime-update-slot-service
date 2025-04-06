@@ -156,59 +156,60 @@ def update_slot_times_multi():
 # Lock only credentials that belong to a slot whose end is within 2 min
 # i.e. now >= slot_end_dt - 2min => lock belongs_to_slot that matches
 # --------------------------------------------------------------------
-def lock_by_slot():
-    now_ist = datetime.now(ist)
 
-    # read settings => see which slots are enabled
-    settings_resp = requests.get(REAL_DB_URL + "settings.json")
-    if settings_resp.status_code != 200 or not settings_resp.json():
-        print("No settings => skip lock.")
-        return
-    settings_data = settings_resp.json()
-    all_slots = settings_data.get("slots", {})
+# def lock_by_slot():
+    # now_ist = datetime.now(ist)
 
-    # fetch entire DB for credentials
-    db_resp = requests.get(REAL_DB_URL + ".json")
-    if db_resp.status_code != 200 or not db_resp.json():
-        print("No DB data => skip lock.")
-        return
-    db_data = db_resp.json()
+    # # read settings => see which slots are enabled
+    # settings_resp = requests.get(REAL_DB_URL + "settings.json")
+    # if settings_resp.status_code != 200 or not settings_resp.json():
+        # print("No settings => skip lock.")
+        # return
+    # settings_data = settings_resp.json()
+    # all_slots = settings_data.get("slots", {})
 
-    margin = timedelta(minutes=2)
-    locked_count_total = 0
+    # # fetch entire DB for credentials
+    # db_resp = requests.get(REAL_DB_URL + ".json")
+    # if db_resp.status_code != 200 or not db_resp.json():
+        # print("No DB data => skip lock.")
+        # return
+    # db_data = db_resp.json()
 
-    for slot_id, slot_info in all_slots.items():
-        if not isinstance(slot_info, dict):
-            continue
-        if not slot_info.get("enabled", False):
-            continue
+    # margin = timedelta(minutes=2)
+    # locked_count_total = 0
 
-        slot_end_str = slot_info.get("slot_end","9999-12-31 09:00:00")
-        try:
-            slot_end_dt = parse_ist(slot_end_str)
-        except ValueError:
-            continue
+    # for slot_id, slot_info in all_slots.items():
+        # if not isinstance(slot_info, dict):
+            # continue
+        # if not slot_info.get("enabled", False):
+            # continue
 
-        # if now >= slot_end_dt - margin => lock belongs_to_slot
-        if now_ist >= (slot_end_dt - margin):
-            # lock only creds that belongs_to_slot == slot_id & locked=0
-            for cred_key, cred_data in db_data.items():
-                if not is_credential(cred_data):
-                    continue
-                if cred_data.get("belongs_to_slot","") != slot_id:
-                    # skip different slot
-                    continue
+        # slot_end_str = slot_info.get("slot_end","9999-12-31 09:00:00")
+        # try:
+            # slot_end_dt = parse_ist(slot_end_str)
+        # except ValueError:
+            # continue
 
-                locked_val = int(cred_data.get("locked",0))
-                if locked_val == 0:
-                    patch_url  = REAL_DB_URL + f"/{cred_key}.json"
-                    patch_data = {"locked":1}
-                    p = requests.patch(patch_url, json=patch_data)
-                    if p.status_code == 200:
-                        locked_count_total += 1
+        # # if now >= slot_end_dt - margin => lock belongs_to_slot
+        # if now_ist >= (slot_end_dt - margin):
+            # # lock only creds that belongs_to_slot == slot_id & locked=0
+            # for cred_key, cred_data in db_data.items():
+                # if not is_credential(cred_data):
+                    # continue
+                # if cred_data.get("belongs_to_slot","") != slot_id:
+                    # # skip different slot
+                    # continue
 
-    print(f"Locked {locked_count_total} credentials in total.")
+                # locked_val = int(cred_data.get("locked",0))
+                # if locked_val == 0:
+                    # patch_url  = REAL_DB_URL + f"/{cred_key}.json"
+                    # patch_data = {"locked":1}
+                    # p = requests.patch(patch_url, json=patch_data)
+                    # if p.status_code == 200:
+                        # locked_count_total += 1
 
+    # print(f"Locked {locked_count_total} credentials in total.")
+    
 
 # -------------------------------------------------------
 # Endpoints to trigger SHIFT or LOCK from Cron-Job.org
